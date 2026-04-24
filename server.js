@@ -131,7 +131,7 @@ app.delete('/api/categories/:id', requireLogin, (req, res) => {
     db.prepare('DELETE FROM categories WHERE id = ?').run(req.params.id);
     res.json({ message: '삭제 완료!' });
   } catch(err) { res.status(500).json({ error: err.message }); }
-});
+});gg
 
 // ── AI 분석 ───────────────────────────────
 app.post('/api/analyze', requireLogin, async (req, res) => {
@@ -149,3 +149,24 @@ app.post('/api/analyze', requireLogin, async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, function() { console.log('서버 실행 중: http://localhost:' + PORT); });
+
+// DB 상태 확인 (임시)
+app.get('/api/db-check', requireLogin, (req, res) => {
+  try {
+    const fs = require('fs');
+    const dbExists = fs.existsSync('./budget.db');
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+    const transCount = db.prepare('SELECT COUNT(*) as cnt FROM transactions').get();
+    const accCount = db.prepare('SELECT COUNT(*) as cnt FROM accounts').get();
+    const catCount = db.prepare('SELECT COUNT(*) as cnt FROM categories').get();
+    res.json({
+      dbFileExists: dbExists,
+      tables: tables.map(function(t) { return t.name; }),
+      transactionCount: transCount.cnt,
+      accountCount: accCount.cnt,
+      categoryCount: catCount.cnt
+    });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
