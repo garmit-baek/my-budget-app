@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
-const bcrypt = require('bcryptjs');
 const Anthropic = require('@anthropic-ai/sdk');
 const db = require('./database');
 const path = require('path');
@@ -13,12 +12,10 @@ const client = new Anthropic();
 const ADMIN_ID = process.env.ADMIN_ID || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'password1234';
 
-// ① 기본 설정
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ② 세션 설정
 app.use(session({
   secret: process.env.SESSION_SECRET || 'secret-key',
   resave: false,
@@ -26,107 +23,129 @@ app.use(session({
   cookie: { maxAge: 1000 * 60 * 60 * 24 }
 }));
 
-// ③ 로그인 체크 함수
 function requireLogin(req, res, next) {
-  if (req.session && req.session.loggedIn) {
-    next();
-  } else {
-    res.redirect('/login.html');
-  }
+  if (req.session && req.session.loggedIn) return next();
+  res.redirect('/login.html');
 }
 
-// ④ 로그인 페이지 (인증 없이 접근 가능)
-app.get('/login.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-app.get('/login.css', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login.css'));
-});
+// 로그인 페이지
+app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
+app.get('/login.css',  (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.css')));
 
-// ⑤ 로그인 처리 (requireLogin 보다 반드시 위!)
+// 로그인/로그아웃
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
-  console.log('로그인 시도:', username);
   if (username === ADMIN_ID && password === ADMIN_PASSWORD) {
     req.session.loggedIn = true;
-    req.session.username = username;
-    console.log('로그인 성공!');
     res.json({ success: true });
   } else {
-    console.log('로그인 실패');
     res.status(401).json({ success: false, message: '아이디 또는 비밀번호가 틀렸습니다.' });
   }
 });
+app.post('/api/logout', (req, res) => { req.session.destroy(); res.json({ success: true }); });
+app.get('/api/check-auth', (req, res) => res.json({ loggedIn: !!(req.session && req.session.loggedIn) }));
 
-// ⑥ 로그아웃 (requireLogin 보다 위!)
-app.post('/api/logout', (req, res) => {
-  req.session.destroy();
-  res.json({ success: true });
-});
-
-// ⑦ 로그인 상태 확인 (requireLogin 보다 위!)
-app.get('/api/check-auth', (req, res) => {
-  res.json({ loggedIn: req.session && req.session.loggedIn ? true : false });
-});
-
-// ⑧ 정적 파일 (로그인 필요 — 항상 API 라우트 뒤에!)
+// 정적 파일
 app.use(requireLogin, express.static(path.join(__dirname, 'public')));
 
-// ⑨ 거래 내역 저장
+// ── 거래 내역 ──────────────────────────────
+app.get('/api/transactions', requireLogin, (req, res) => {
+  try { res.json(db.prepare('SELECT * FROM transactions ORDER BY date DESC').all()); }
+  catch(err) { res.status(500).json({ error: err.message }); }
+});
+
 app.post('/api/transactions', requireLogin, (req, res) => {
   const { type, amount, category, account, description, date } = req.body;
   try {
-    const stmt = db.prepare(
+    const result = db.prepare(
       'INSERT INTO transactions (type, amount, category, account, description, date) VALUES (?, ?, ?, ?, ?, ?)'
-    );
-    const result = stmt.run(type, amount, category, account || '현금', description, date);
+    ).run(type, amount, category, account || '현금', description, date);
     res.json({ id: result.lastInsertRowid, message: '저장 완료!' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch(err) { res.status(500).json({ error: err.message }); }
 });
 
-// ⑩ 거래 내역 조회
-app.get('/api/transactions', requireLogin, (req, res) => {
-  try {
-    const rows = db.prepare('SELECT * FROM transactions ORDER BY date DESC').all();
-    res.json(rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ⑪ 거래 내역 삭제
 app.delete('/api/transactions/:id', requireLogin, (req, res) => {
   try {
     db.prepare('DELETE FROM transactions WHERE id = ?').run(req.params.id);
     res.json({ message: '삭제 완료!' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  } catch(err) { res.status(500).json({ error: err.message }); }
 });
 
-// ⑫ Claude AI 분석
+// ── 계정과목 CRUD ──────────────────────────
+app.get('/api/accounts', requireLogin, (req, res) => {
+  try { res.json(db.prepare('SELECT * FROM accounts ORDER BY id').all()); }
+  catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/accounts', requireLogin, (req, res) => {
+  const { name } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: '계정명을 입력하세요.' });
+  try {
+    const result = db.prepare('INSERT INTO accounts (name) VALUES (?)').run(name.trim());
+    res.json({ id: result.lastInsertRowid, name: name.trim(), message: '추가 완료!' });
+  } catch(err) { res.status(400).json({ error: '이미 존재하는 계정입니다.' }); }
+});
+
+app.put('/api/accounts/:id', requireLogin, (req, res) => {
+  const { name } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: '계정명을 입력하세요.' });
+  try {
+    db.prepare('UPDATE accounts SET name = ? WHERE id = ?').run(name.trim(), req.params.id);
+    res.json({ message: '수정 완료!' });
+  } catch(err) { res.status(400).json({ error: '이미 존재하는 계정입니다.' }); }
+});
+
+app.delete('/api/accounts/:id', requireLogin, (req, res) => {
+  try {
+    db.prepare('DELETE FROM accounts WHERE id = ?').run(req.params.id);
+    res.json({ message: '삭제 완료!' });
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── 카테고리 CRUD ──────────────────────────
+app.get('/api/categories', requireLogin, (req, res) => {
+  try { res.json(db.prepare('SELECT * FROM categories ORDER BY type, id').all()); }
+  catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/categories', requireLogin, (req, res) => {
+  const { type, name } = req.body;
+  if (!type || !name || !name.trim()) return res.status(400).json({ error: '구분과 카테고리명을 입력하세요.' });
+  try {
+    const result = db.prepare('INSERT INTO categories (type, name) VALUES (?, ?)').run(type, name.trim());
+    res.json({ id: result.lastInsertRowid, type, name: name.trim(), message: '추가 완료!' });
+  } catch(err) { res.status(400).json({ error: '이미 존재하는 카테고리입니다.' }); }
+});
+
+app.put('/api/categories/:id', requireLogin, (req, res) => {
+  const { name } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: '카테고리명을 입력하세요.' });
+  try {
+    db.prepare('UPDATE categories SET name = ? WHERE id = ?').run(name.trim(), req.params.id);
+    res.json({ message: '수정 완료!' });
+  } catch(err) { res.status(400).json({ error: '이미 존재하는 카테고리입니다.' }); }
+});
+
+app.delete('/api/categories/:id', requireLogin, (req, res) => {
+  try {
+    db.prepare('DELETE FROM categories WHERE id = ?').run(req.params.id);
+    res.json({ message: '삭제 완료!' });
+  } catch(err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── AI 분석 ───────────────────────────────
 app.post('/api/analyze', requireLogin, async (req, res) => {
   const { question } = req.body;
   try {
     const rows = db.prepare('SELECT * FROM transactions ORDER BY date DESC LIMIT 50').all();
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
-      messages: [{
-        role: 'user',
-        content: '당신은 가계부 분석 전문가입니다. 가계부 데이터: ' + JSON.stringify(rows) + ' 질문: ' + question + ' 한국어로 친절하게 답변해주세요.'
-      }]
+      messages: [{ role: 'user', content: '당신은 가계부 분석 전문가입니다. 가계부 데이터: ' + JSON.stringify(rows) + ' 질문: ' + question + ' 한국어로 친절하게 답변해주세요.' }]
     });
     res.json({ answer: message.content[0].text });
-  } catch (err) {
-    res.status(500).json({ error: 'AI 오류: ' + err.message });
-  }
+  } catch(err) { res.status(500).json({ error: 'AI 오류: ' + err.message }); }
 });
 
-// ⑬ 서버 시작
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, function() {
-  console.log('서버 실행 중: http://localhost:' + PORT);
-});
+app.listen(PORT, function() { console.log('서버 실행 중: http://localhost:' + PORT); });
