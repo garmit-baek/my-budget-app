@@ -151,3 +151,199 @@ button:hover { background:#357abd; }
   border: 1px solid #90caf9;
 }
 .dl-btn.excel:hover { background: #bbdefb; }
+
+/* 월별 필터 */
+.month-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.month-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2c3e50;
+  min-width: 90px;
+  text-align: center;
+}
+.month-all-btn {
+  margin: 0;
+  padding: 5px 12px;
+  font-size: 12px;
+  background: #f0f2f5;
+  color: #555;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  width: auto;
+}
+.month-all-btn:hover { background: #ddd; }
+.month-all-btn.active {
+  background: #4a90e2;
+  color: white;
+  border-color: #4a90e2;
+}
+
+/* 월별 수입/지출 요약 */
+.month-summary {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background: #f8f9ff;
+  border-radius: 8px;
+}
+.month-in  strong { color: #27ae60; }
+.month-out strong { color: #e74c3c; }
+.month-bal strong { color: #4a90e2; }
+.month-in, .month-out, .month-bal { color: #888; }
+
+/* 다운로드 섹션 */
+.download-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+.download-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #2c3e50;
+  margin-bottom: 12px;
+}
+.download-period { display: flex; flex-direction: column; gap: 10px; }
+.download-period-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.download-period-row label {
+  font-size: 13px;
+  color: #888;
+  flex: none;
+  width: auto;
+}
+.download-period-row input[type="date"] {
+  flex: none;
+  width: 150px;
+  padding: 7px 10px;
+  font-size: 13px;
+}
+.download-period-shortcuts {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.shortcut-btn {
+  padding: 5px 12px;
+  font-size: 12px;
+  background: #f0f2f5;
+  color: #555;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  margin: 0;
+  width: auto;
+}
+.shortcut-btn:hover { background: #ddd; }
+.shortcut-btn.active {
+  background: #4a90e2;
+  color: white;
+  border-color: #4a90e2;
+}
+.download-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.dl-btn {
+  padding: 8px 16px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Malgun Gothic', sans-serif;
+  margin: 0;
+  width: auto;
+}
+.dl-btn.csv {
+  background: #e8f5e9;
+  color: #27ae60;
+  border: 1px solid #a5d6a7;
+}
+.dl-btn.csv:hover { background: #c8e6c9; }
+.dl-btn.excel {
+  background: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #90caf9;
+}
+.dl-btn.excel:hover { background: #bbdefb; }
+
+/* 모바일 최적화 */
+@media (max-width: 600px) {
+  .container { padding: 0 12px; margin: 16px auto; }
+  h1 { font-size: 20px; }
+  .tab-btn { font-size: 11px; padding: 8px 4px; }
+  .summary-box { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .summary { padding: 12px 8px; }
+  .summary span:last-child { font-size: 14px; }
+  .form-row { flex-direction: column; gap: 8px; }
+  .form-row input, .form-row select { width: 100%; }
+  .transaction-amount { font-size: 13px; }
+  .calendar-day { min-height: 52px; padding: 4px; }
+  .day-num { font-size: 11px; }
+  .day-income, .day-expense { font-size: 9px; }
+  .trend-amounts { gap: 8px; font-size: 12px; }
+  .download-period-row input[type="date"] { width: 130px; }
+  .month-summary { gap: 10px; font-size: 12px; }
+}
+
+/* 업로드 섹션 */
+.upload-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+.upload-area {
+  border: 2px dashed #ddd;
+  border-radius: 12px;
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fafafa;
+}
+.upload-area:hover, .upload-area.dragover {
+  border-color: #4a90e2;
+  background: #eef4ff;
+}
+.upload-icon { font-size: 32px; margin-bottom: 10px; }
+.upload-text {
+  font-size: 14px;
+  color: #444;
+  font-weight: 500;
+  line-height: 1.6;
+  margin-bottom: 6px;
+}
+.upload-sub { font-size: 12px; color: #aaa; }
+.upload-status {
+  margin-top: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.upload-status.success {
+  background: #e8f5e9;
+  color: #27ae60;
+  border: 1px solid #a5d6a7;
+}
+.upload-status.error {
+  background: #fff3f3;
+  color: #e74c3c;
+  border: 1px solid #ffcdd2;
+}
+.upload-status.loading {
+  background: #f8f9ff;
+  color: #4a90e2;
+  border: 1px solid #90caf9;
+}

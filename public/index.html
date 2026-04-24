@@ -12,7 +12,6 @@
   <meta name="apple-mobile-web-app-title" content="내 가계부">
   <link rel="apple-touch-icon" href="/icon-192.png">
 </head>
-</head>
 <body>
 <div class="container">
 
@@ -32,6 +31,8 @@
 
   <!-- ── 홈 탭 ── -->
   <div id="tab-home" class="tab-content">
+
+    <!-- 거래 입력 폼 -->
     <div class="form-box">
       <h2>거래 추가</h2>
       <div class="form-row">
@@ -52,23 +53,81 @@
       <button onclick="addTransaction()">추가하기</button>
     </div>
 
+    <!-- 전체 요약 -->
     <div class="summary-box">
       <div class="summary income"><span>총 수입</span><span id="total-income">0원</span></div>
       <div class="summary expense"><span>총 지출</span><span id="total-expense">0원</span></div>
       <div class="summary balance"><span>잔액</span><span id="balance">0원</span></div>
     </div>
 
+    <!-- 거래 내역 -->
     <div class="list-box">
       <div class="list-header">
         <h2>거래 내역</h2>
-        <div class="download-btns">
-          <button class="dl-btn csv" onclick="downloadCSV()">CSV 다운로드</button>
-          <button class="dl-btn excel" onclick="downloadExcel()">엑셀 다운로드</button>
+      </div>
+
+      <!-- 월별 필터 -->
+      <div class="month-filter">
+        <button class="nav-btn" onclick="changeListMonth(-1)">◀</button>
+        <span id="list-month-title" class="month-title"></span>
+        <button class="nav-btn" onclick="changeListMonth(1)">▶</button>
+        <button class="month-all-btn" onclick="showAllTransactions()">전체보기</button>
+      </div>
+
+      <!-- 월별 요약 -->
+      <div class="month-summary" id="month-summary">
+        <span class="month-in">수입 <strong id="month-in-amount">0원</strong></span>
+        <span class="month-out">지출 <strong id="month-out-amount">0원</strong></span>
+        <span class="month-bal">잔액 <strong id="month-bal-amount">0원</strong></span>
+      </div>
+
+      <!-- 거래 목록 -->
+      <div id="transactions-list"></div>
+
+      <!-- 다운로드 섹션 -->
+      <div class="download-section">
+        <div class="download-title">📥 다운로드</div>
+        <div class="download-period">
+          <div class="download-period-row">
+            <label>시작일</label>
+            <input type="date" id="dl-start">
+            <label>종료일</label>
+            <input type="date" id="dl-end">
+          </div>
+          <div class="download-period-shortcuts">
+            <button class="shortcut-btn" onclick="setDownloadPeriod('thisMonth')">이번달</button>
+            <button class="shortcut-btn" onclick="setDownloadPeriod('lastMonth')">지난달</button>
+            <button class="shortcut-btn" onclick="setDownloadPeriod('thisQuarter')">이번분기</button>
+            <button class="shortcut-btn" onclick="setDownloadPeriod('thisYear')">올해</button>
+            <button class="shortcut-btn" onclick="setDownloadPeriod('all')">전체</button>
+          </div>
+          <div class="download-btns">
+            <button class="dl-btn csv" onclick="downloadCSV()">⬇ CSV 다운로드</button>
+            <button class="dl-btn excel" onclick="downloadExcel()">⬇ 엑셀 다운로드</button>
+          </div>
         </div>
       </div>
-      <div id="transactions-list"></div>
+
+      <!-- 업로드 섹션 -->
+      <div class="upload-section">
+        <div class="download-title">📤 거래내역 복구 (업로드)</div>
+        <div class="upload-area" id="upload-area"
+          onclick="document.getElementById('file-input').click()"
+          ondragover="event.preventDefault();this.classList.add('dragover')"
+          ondragleave="this.classList.remove('dragover')"
+          ondrop="handleFileDrop(event)">
+          <div class="upload-icon">📁</div>
+          <div class="upload-text">CSV 또는 엑셀(.xlsx) 파일을<br>클릭하거나 드래그해서 업로드</div>
+          <div class="upload-sub">다운로드한 가계부 파일을 업로드하면 거래내역이 복구됩니다</div>
+          <input type="file" id="file-input" accept=".csv,.xlsx,.xls"
+            style="display:none" onchange="handleFileSelect(event)">
+        </div>
+        <div id="upload-status" class="upload-status" style="display:none"></div>
+      </div>
+
     </div>
 
+    <!-- AI 분석 -->
     <div class="ai-box">
       <h2>🤖 AI 분석</h2>
       <div class="form-row">
@@ -77,6 +136,7 @@
       </div>
       <div id="ai-answer"></div>
     </div>
+
   </div>
 
   <!-- ── 통계 탭 ── -->
@@ -101,19 +161,23 @@
       </div>
       <button onclick="loadStats()">조회하기</button>
     </div>
+
     <div class="summary-box" id="stats-summary" style="display:none">
       <div class="summary income"><span>수입</span><span id="stats-income">0원</span></div>
       <div class="summary expense"><span>지출</span><span id="stats-expense">0원</span></div>
       <div class="summary balance"><span>잔액</span><span id="stats-balance">0원</span></div>
     </div>
+
     <div class="list-box" id="stats-category-box" style="display:none">
       <h2>📂 카테고리별 지출</h2>
       <div id="stats-category"></div>
     </div>
+
     <div class="list-box" id="stats-account-box" style="display:none">
       <h2>💳 계정과목별 통계</h2>
       <div id="stats-account"></div>
     </div>
+
     <div class="list-box" id="stats-trend-box" style="display:none">
       <h2>📈 기간별 추이</h2>
       <div id="stats-trend"></div>
@@ -178,15 +242,15 @@
   </div>
 
 </div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="app.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(function() { console.log('SW 등록 완료'); })
-        .catch(function(err) { console.log('SW 오류:', err); });
-    }
-  </script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="app.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(function() { console.log('SW 등록 완료'); })
+      .catch(function(err) { console.log('SW 오류:', err); });
+  }
+</script>
 </body>
 </html>
