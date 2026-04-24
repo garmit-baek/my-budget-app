@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>내 가계부</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#4a90e2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="내 가계부">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+</head>
 </head>
 <body>
 <div class="container">
@@ -52,7 +59,13 @@
     </div>
 
     <div class="list-box">
-      <h2>거래 내역</h2>
+      <div class="list-header">
+        <h2>거래 내역</h2>
+        <div class="download-btns">
+          <button class="dl-btn csv" onclick="downloadCSV()">CSV 다운로드</button>
+          <button class="dl-btn excel" onclick="downloadExcel()">엑셀 다운로드</button>
+        </div>
+      </div>
       <div id="transactions-list"></div>
     </div>
 
@@ -165,6 +178,15 @@
   </div>
 
 </div>
-<script src="app.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(function() { console.log('SW 등록 완료'); })
+        .catch(function(err) { console.log('SW 오류:', err); });
+    }
+  </script>
+
 </body>
 </html>
