@@ -1,4 +1,4 @@
-var API = 'http://localhost:3000/api';
+var API = '/api';
 var allTransactions = [];
 var allAccounts = [];
 var allCategories = [];
@@ -7,12 +7,19 @@ var today = new Date();
 calendarYear = today.getFullYear();
 calendarMonth = today.getMonth() + 1;
 
+// 공통 fetch 함수 (세션 쿠키 자동 포함)
+function apiFetch(url, options) {
+  options = options || {};
+  options.credentials = 'same-origin';
+  options.headers = options.headers || {};
+  return fetch(url, options);
+}
+
 // ── 초기 데이터 로드 ──────────────────────
 function init() {
   loadTransactions();
   loadAccounts();
   loadCategories();
-
   document.getElementById('date').value =
     today.getFullYear() + '-' +
     String(today.getMonth() + 1).padStart(2, '0') + '-' +
@@ -25,12 +32,10 @@ function showTab(name) {
     document.getElementById('tab-' + t).style.display = 'none';
   });
   document.getElementById('tab-' + name).style.display = 'block';
-
   var btns = document.querySelectorAll('.tab-btn');
   btns.forEach(function(b) { b.classList.remove('active'); });
   var idx = { home:0, stats:1, calendar:2, settings:3 };
   btns[idx[name]].classList.add('active');
-
   if (name === 'stats') initStatsSelects();
   if (name === 'calendar') renderCalendar();
   if (name === 'settings') { renderAccountList(); renderCategoryList(); }
@@ -38,7 +43,7 @@ function showTab(name) {
 
 // ── 계정 로드 ─────────────────────────────
 function loadAccounts() {
-  fetch(API + '/accounts')
+  apiFetch(API + '/accounts')
   .then(function(r) { return r.json(); })
   .then(function(data) {
     allAccounts = data;
@@ -52,7 +57,7 @@ function loadAccounts() {
 
 // ── 카테고리 로드 ─────────────────────────
 function loadCategories() {
-  fetch(API + '/categories')
+  apiFetch(API + '/categories')
   .then(function(r) { return r.json(); })
   .then(function(data) {
     allCategories = data;
@@ -60,7 +65,7 @@ function loadCategories() {
   });
 }
 
-// ── 수입/지출에 따라 카테고리 필터링 ─────
+// ── 수입/지출에 따라 카테고리 필터링 ──────
 function filterCategories() {
   var type = document.getElementById('type').value;
   var sel = document.getElementById('category');
@@ -86,7 +91,7 @@ function addTransaction() {
     return;
   }
 
-  fetch(API + '/transactions', {
+  apiFetch(API + '/transactions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ type:type, amount:parseInt(amount), category:category, account:account, description:desc, date:date })
@@ -104,7 +109,7 @@ function addTransaction() {
 
 // ── 거래 목록 ─────────────────────────────
 function loadTransactions() {
-  fetch(API + '/transactions')
+  apiFetch(API + '/transactions')
   .then(function(r) { return r.json(); })
   .then(function(data) {
     allTransactions = data;
@@ -138,9 +143,10 @@ function loadTransactions() {
   });
 }
 
+// ── 거래 삭제 ─────────────────────────────
 function deleteTransaction(id) {
   if (!confirm('삭제할까요?')) return;
-  fetch(API + '/transactions/' + id, { method:'DELETE' })
+  apiFetch(API + '/transactions/' + id, { method: 'DELETE' })
   .then(function(r) { return r.json(); })
   .then(function() { loadTransactions(); });
 }
@@ -153,8 +159,9 @@ function askAI() {
   box.style.display = 'block';
   box.className = 'loading';
   box.textContent = 'AI가 분석 중입니다...';
-  fetch(API + '/analyze', {
-    method:'POST', headers:{'Content-Type':'application/json'},
+  apiFetch(API + '/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ question: q })
   })
   .then(function(r) { return r.json(); })
@@ -162,8 +169,9 @@ function askAI() {
   .catch(function() { box.className = ''; box.textContent = '오류가 발생했습니다.'; });
 }
 
+// ── 로그아웃 ─────────────────────────────
 function doLogout() {
-  fetch('/api/logout', { method:'POST' })
+  apiFetch('/api/logout', { method: 'POST' })
   .then(function() { location.href = '/login.html'; });
 }
 
@@ -359,7 +367,11 @@ function showDayDetail(dateStr) {
 function addAccount() {
   var name=document.getElementById('new-account').value.trim();
   if(!name){alert('계정 이름을 입력하세요.');return;}
-  fetch(API+'/accounts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})})
+  apiFetch(API+'/accounts',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:name})
+  })
   .then(function(r){return r.json();})
   .then(function(d){
     if(d.error){alert(d.error);return;}
@@ -370,7 +382,7 @@ function addAccount() {
 }
 
 function renderAccountList() {
-  fetch(API+'/accounts')
+  apiFetch(API+'/accounts')
   .then(function(r){return r.json();})
   .then(function(data){
     allAccounts=data;
@@ -407,7 +419,11 @@ function toggleAccountEdit(id) {
 function saveAccount(id) {
   var name=document.getElementById('acc-input-'+id).value.trim();
   if(!name){alert('계정 이름을 입력하세요.');return;}
-  fetch(API+'/accounts/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})})
+  apiFetch(API+'/accounts/'+id,{
+    method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:name})
+  })
   .then(function(r){return r.json();})
   .then(function(d){
     if(d.error){alert(d.error);return;}
@@ -417,7 +433,7 @@ function saveAccount(id) {
 
 function deleteAccount(id) {
   if(!confirm('이 계정을 삭제할까요?'))return;
-  fetch(API+'/accounts/'+id,{method:'DELETE'})
+  apiFetch(API+'/accounts/'+id,{method:'DELETE'})
   .then(function(r){return r.json();})
   .then(function(){loadAccounts();renderAccountList();});
 }
@@ -427,7 +443,11 @@ function addCategory() {
   var type=document.getElementById('new-category-type').value;
   var name=document.getElementById('new-category').value.trim();
   if(!name){alert('카테고리 이름을 입력하세요.');return;}
-  fetch(API+'/categories',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:type,name:name})})
+  apiFetch(API+'/categories',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({type:type,name:name})
+  })
   .then(function(r){return r.json();})
   .then(function(d){
     if(d.error){alert(d.error);return;}
@@ -437,7 +457,7 @@ function addCategory() {
 }
 
 function renderCategoryList() {
-  fetch(API+'/categories')
+  apiFetch(API+'/categories')
   .then(function(r){return r.json();})
   .then(function(data){
     allCategories=data;
@@ -477,7 +497,11 @@ function toggleCategoryEdit(id) {
 function saveCategory(id) {
   var name=document.getElementById('cat-input-'+id).value.trim();
   if(!name){alert('카테고리 이름을 입력하세요.');return;}
-  fetch(API+'/categories/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})})
+  apiFetch(API+'/categories/'+id,{
+    method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:name})
+  })
   .then(function(r){return r.json();})
   .then(function(d){
     if(d.error){alert(d.error);return;}
@@ -487,7 +511,7 @@ function saveCategory(id) {
 
 function deleteCategory(id) {
   if(!confirm('이 카테고리를 삭제할까요?'))return;
-  fetch(API+'/categories/'+id,{method:'DELETE'})
+  apiFetch(API+'/categories/'+id,{method:'DELETE'})
   .then(function(r){return r.json();})
   .then(function(){loadCategories();renderCategoryList();});
 }
