@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>내 가계부</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="container">
+    <h1>💰 내 가계부</h1>
+
+    <!-- 거래 입력 폼 -->
+    <div class="form-box">
+      <h2>거래 추가</h2>
+      <div class="form-row">
+        <select id="type">
+          <option value="expense">지출</option>
+          <option value="income">수입</option>
+        </select>
+        <input type="number" id="amount" placeholder="금액 (원)">
+      </div>
+      <div class="form-row">
+        <select id="account">
+          <option value="">계정 선택</option>
+          <optgroup label="현금/은행">
+            <option value="현금">💵 현금</option>
+            <option value="국민은행">🏦 국민은행</option>
+            <option value="신한은행">🏦 신한은행</option>
+            <option value="하나은행">🏦 하나은행</option>
+            <option value="우리은행">🏦 우리은행</option>
+            <option value="카카오뱅크">🟡 카카오뱅크</option>
+            <option value="토스뱅크">💙 토스뱅크</option>
+          </optgroup>
+          <optgroup label="카드">
+            <option value="국민카드">💳 국민카드</option>
+            <option value="신한카드">💳 신한카드</option>
+            <option value="삼성카드">💳 삼성카드</option>
+            <option value="현대카드">💳 현대카드</option>
+            <option value="롯데카드">💳 롯데카드</option>
+          </optgroup>
+          <optgroup label="간편결제">
+            <option value="네이버페이">🟢 네이버페이</option>
+            <option value="카카오페이">🟡 카카오페이</option>
+            <option value="토스">💙 토스</option>
+          </optgroup>
+        </select>
+        <select id="category">
+          <option value="">카테고리 선택</option>
+          <optgroup label="지출">
+            <option value="식비">🍚 식비</option>
+            <option value="카페/간식">☕ 카페/간식</option>
+            <option value="교통">🚌 교통</option>
+            <option value="주거/관리비">🏠 주거/관리비</option>
+            <option value="통신">📱 통신</option>
+            <option value="의료/건강">🏥 의료/건강</option>
+            <option value="쇼핑/의류">👕 쇼핑/의류</option>
+            <option value="문화/여가">🎬 문화/여가</option>
+            <option value="교육">📚 교육</option>
+            <option value="여행">✈️ 여행</option>
+            <option value="경조사">🎁 경조사</option>
+            <option value="기타지출">💸 기타지출</option>
+          </optgroup>
+          <optgroup label="수입">
+            <option value="급여">💰 급여</option>
+            <option value="용돈">🪙 용돈</option>
+            <option value="부수입">📈 부수입</option>
+            <option value="기타수입">💵 기타수입</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="form-row">
+        <input type="date" id="date">
+        <input type="text" id="description" placeholder="메모 (선택사항)">
+      </div>
+      <button onclick="addTransaction()">추가하기</button>
+    </div>
+
+    <!-- 요약 -->
+    <div class="summary-box">
+      <div class="summary income">
+        <span>총 수입</span>
+        <span id="total-income">0원</span>
+      </div>
+      <div class="summary expense">
+        <span>총 지출</span>
+        <span id="total-expense">0원</span>
+      </div>
+      <div class="summary balance">
+        <span>잔액</span>
+        <span id="balance">0원</span>
+      </div>
+    </div>
+
+    <!-- 거래 목록 -->
+    <div class="list-box">
+      <h2>거래 내역</h2>
+      <div id="transactions-list">거래 내역이 없습니다.</div>
+    </div>
+
+    <!-- AI 분석 -->
+    <div class="ai-box">
+      <h2>🤖 AI 분석</h2>
+      <div class="form-row">
+        <input type="text" id="ai-question" placeholder="예: 이번달 식비가 얼마야?">
+        <button onclick="askAI()">물어보기</button>
+      </div>
+      <div id="ai-answer"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

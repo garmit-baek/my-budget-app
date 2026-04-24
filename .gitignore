@@ -1,0 +1,13 @@
+# .gitignore
+
+# API 키 등 비밀 정보 — 절대 GitHub에 올리면 안 됨
+.env
+
+# 설치된 패키지 폴더 — 용량이 너무 크고 직접 복원 가능
+node_modules/
+
+# 데이터베이스 파일 — 서버에서 새로 생성됨
+budget.db
+
+# Mac 시스템 파일
+.DS_Store
