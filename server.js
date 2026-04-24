@@ -131,7 +131,7 @@ app.delete('/api/categories/:id', requireLogin, (req, res) => {
     db.prepare('DELETE FROM categories WHERE id = ?').run(req.params.id);
     res.json({ message: '삭제 완료!' });
   } catch(err) { res.status(500).json({ error: err.message }); }
-});gg
+});
 
 // ── AI 분석 ───────────────────────────────
 app.post('/api/analyze', requireLogin, async (req, res) => {
