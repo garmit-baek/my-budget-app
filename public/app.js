@@ -134,3 +134,11 @@ document.getElementById('date').value = yyyy + '-' + mm + '-' + dd;
 
 // 페이지 로드 시 목록 불러오기
 loadTransactions();
+
+// 로그아웃
+function doLogout() {
+  fetch('/api/logout', { method: 'POST' })
+  .then(function() {
+    location.href = '/login.html';
+  });
+}

@@ -202,3 +202,30 @@ button:hover {
   color: #aaa;
   font-style: italic;
 }
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.header-row h1 {
+  margin-bottom: 0;
+}
+
+.logout-btn {
+  padding: 8px 16px;
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 0;
+  width: auto;
+}
+
+.logout-btn:hover {
+  background: #c0392b;
+}
