@@ -516,5 +516,172 @@ function deleteCategory(id) {
   .then(function(){loadCategories();renderCategoryList();});
 }
 
+// ── 다운로드 공통 데이터 준비 ─────────────
+function getDownloadData() {
+  if (allTransactions.length === 0) {
+    alert('다운로드할 거래 내역이 없습니다.');
+    return null;
+  }
+
+  // 헤더
+  var headers = ['날짜', '구분', '계정', '카테고리', '금액(원)', '메모'];
+
+  // 데이터 행
+  var rows = allTransactions.map(function(t) {
+    return [
+      t.date,
+      t.type === 'income' ? '수입' : '지출',
+      t.account || '현금',
+      t.category,
+      t.amount,
+      t.description || ''
+    ];
+  });
+
+  // 합계 행
+  var totalIn  = allTransactions.filter(function(t){return t.type==='income';}).reduce(function(s,t){return s+t.amount;},0);
+  var totalOut = allTransactions.filter(function(t){return t.type==='expense';}).reduce(function(s,t){return s+t.amount;},0);
+  rows.push([]);
+  rows.push(['', '', '', '총 수입', totalIn, '']);
+  rows.push(['', '', '', '총 지출', totalOut, '']);
+  rows.push(['', '', '', '잔액',   totalIn - totalOut, '']);
+
+  return { headers: headers, rows: rows };
+}
+
+// ── CSV 다운로드 ──────────────────────────
+function downloadCSV() {
+  var data = getDownloadData();
+  if (!data) return;
+
+  var csvRows = [];
+
+  // BOM 추가 (한글 깨짐 방지)
+  var BOM = '\uFEFF';
+
+  // 헤더
+  csvRows.push(data.headers.join(','));
+
+  // 데이터
+  data.rows.forEach(function(row) {
+    var escaped = row.map(function(cell) {
+      var str = String(cell === null || cell === undefined ? '' : cell);
+      // 쉼표, 따옴표, 줄바꿈이 있으면 따옴표로 감싸기
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        str = '"' + str.replace(/"/g, '""') + '"';
+      }
+      return str;
+    });
+    csvRows.push(escaped.join(','));
+  });
+
+  var csvContent = BOM + csvRows.join('\n');
+  var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+
+  var today = new Date();
+  var fileName = '가계부_' +
+    today.getFullYear() +
+    String(today.getMonth()+1).padStart(2,'0') +
+    String(today.getDate()).padStart(2,'0') + '.csv';
+
+  var link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── 엑셀 다운로드 ─────────────────────────
+function downloadExcel() {
+  if (typeof XLSX === 'undefined') {
+    alert('엑셀 라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.');
+    return;
+  }
+
+  var data = getDownloadData();
+  if (!data) return;
+
+  // 워크북 생성
+  var wb = XLSX.utils.book_new();
+
+  // ── 시트 1: 전체 내역 ──
+  var sheetData = [data.headers].concat(data.rows);
+  var ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+  // 컬럼 너비 설정
+  ws['!cols'] = [
+    { wch: 12 }, // 날짜
+    { wch: 6  }, // 구분
+    { wch: 12 }, // 계정
+    { wch: 14 }, // 카테고리
+    { wch: 14 }, // 금액
+    { wch: 20 }  // 메모
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, '전체내역');
+
+  // ── 시트 2: 카테고리별 요약 ──
+  var catMap = {};
+  allTransactions.forEach(function(t) {
+    if (t.type === 'expense') {
+      catMap[t.category] = (catMap[t.category] || 0) + t.amount;
+    }
+  });
+  var catRows = [['카테고리', '지출금액(원)']];
+  Object.keys(catMap).sort(function(a,b){return catMap[b]-catMap[a];}).forEach(function(cat) {
+    catRows.push([cat, catMap[cat]]);
+  });
+  var ws2 = XLSX.utils.aoa_to_sheet(catRows);
+  ws2['!cols'] = [{ wch: 16 }, { wch: 16 }];
+  XLSX.utils.book_append_sheet(wb, ws2, '카테고리별요약');
+
+  // ── 시트 3: 계정별 요약 ──
+  var accMap = { income: {}, expense: {} };
+  allTransactions.forEach(function(t) {
+    var k = t.account || '현금';
+    accMap[t.type][k] = (accMap[t.type][k] || 0) + t.amount;
+  });
+  var allAcc = {};
+  Object.keys(accMap.income).forEach(function(k){allAcc[k]=true;});
+  Object.keys(accMap.expense).forEach(function(k){allAcc[k]=true;});
+  var accRows = [['계정', '수입(원)', '지출(원)', '잔액(원)']];
+  Object.keys(allAcc).forEach(function(acc) {
+    var inc = accMap.income[acc]  || 0;
+    var exp = accMap.expense[acc] || 0;
+    accRows.push([acc, inc, exp, inc - exp]);
+  });
+  var ws3 = XLSX.utils.aoa_to_sheet(accRows);
+  ws3['!cols'] = [{ wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
+  XLSX.utils.book_append_sheet(wb, ws3, '계정별요약');
+
+  // ── 시트 4: 월별 요약 ──
+  var monthMap = {};
+  allTransactions.forEach(function(t) {
+    var ym = t.date.substring(0, 7); // YYYY-MM
+    if (!monthMap[ym]) monthMap[ym] = { income: 0, expense: 0 };
+    if (t.type === 'income') monthMap[ym].income += t.amount;
+    else monthMap[ym].expense += t.amount;
+  });
+  var monthRows = [['연월', '수입(원)', '지출(원)', '잔액(원)']];
+  Object.keys(monthMap).sort().forEach(function(ym) {
+    var inc = monthMap[ym].income;
+    var exp = monthMap[ym].expense;
+    monthRows.push([ym, inc, exp, inc - exp]);
+  });
+  var ws4 = XLSX.utils.aoa_to_sheet(monthRows);
+  ws4['!cols'] = [{ wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
+  XLSX.utils.book_append_sheet(wb, ws4, '월별요약');
+
+  // 파일 저장
+  var today = new Date();
+  var fileName = '가계부_' +
+    today.getFullYear() +
+    String(today.getMonth()+1).padStart(2,'0') +
+    String(today.getDate()).padStart(2,'0') + '.xlsx';
+
+  XLSX.writeFile(wb, fileName);
+}
+
 // ── 시작 ─────────────────────────────────
 init();
